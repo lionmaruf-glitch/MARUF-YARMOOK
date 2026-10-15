@@ -1,0 +1,6 @@
+{
+  "name": "Maruf AI Case Study Lab",
+  "description": "Oman Labour Law (Royal Decree 53/2023) digital evidence management, statutory claim calculator, and bilingual A4 court petition generator for Habibur Rahman Abdul Barak (Maruf) vs Al Yarmook Modern Trading LLC.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
