@@ -1,20 +1,62 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-      
-      match /evidence/{evidenceId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
-      }
-      
-      match /ledger/{ledgerId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
-      }
+    
+    // List of authorized Maruf Master Admin emails
+    function isMasterAdmin() {
+      return request.auth != null && (
+        request.auth.token.email == 'habiburmaruf@gmail.com' ||
+        request.auth.token.email == 'lion.maruf@gmail.com' ||
+        request.auth.token.email == 'marufsage@gmail.com' ||
+        request.auth.token.email == 'marufsage2@gmail.com' ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin')
+      );
+    }
 
-      match /{document=**} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
-      }
+    function isEditorOrAdmin() {
+      return isMasterAdmin() || (
+        request.auth != null &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['Admin', 'Editor']
+      );
+    }
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // User accounts
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated() && (request.auth.uid == userId || isMasterAdmin());
+      allow delete: if isMasterAdmin();
+    }
+
+    // Vault Documents
+    match /documents/{documentId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isEditorOrAdmin();
+      allow delete: if isMasterAdmin();
+    }
+
+    // Family Member Directory
+    match /members/{memberId} {
+      allow read: if true; // Public family pedigree viewing for allowed branch
+      allow create, update: if isEditorOrAdmin();
+      allow delete: if isMasterAdmin();
+    }
+
+    // Audit Logs
+    match /auditLogs/{logId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if isMasterAdmin();
+    }
+
+    // Fallback test connection
+    match /test/{docId} {
+      allow read, write: if true;
     }
   }
 }
